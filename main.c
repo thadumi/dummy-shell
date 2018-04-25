@@ -37,6 +37,9 @@ int nsh_exit(char **args) {
     return 0;
 }
 
+/**
+ * in this array must be declared the name of the custom functions
+ */
 char* builtin_str[] = {
         "cd",
         "help",
@@ -44,18 +47,22 @@ char* builtin_str[] = {
 };
 
 
+/**
+ * this array contain the pointers of each custom function.
+ * The order has to follow the one defined into builtin_str array.
+ */
 int (*builtin_fun[]) (char **) = {
         &nsh_cd,
         &nsh_help,
         &nsh_exit
 };
 
+/**
+ * this constant define the number of custom functions that was defined
+ */
 const int builtin_fun_size = sizeof(builtin_str) / sizeof(char *);
 
 int main(){
-    //set_functions(&my_builtin_str, &my_builtin_fun);
-
+    //call the shell program.
     nsh();
 }
-//https://stackoverflow.com/questions/28502305/writing-a-simple-shell-in-c-using-fork-execvp
-//https://www.usna.edu/Users/cs/aviv/classes/ic221/s16/lec/17/lec.html
