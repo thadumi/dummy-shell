@@ -5,7 +5,7 @@
 #ifndef SHELL_LOOP_CORE_H
 #define SHELL_LOOP_CORE_H
 
-#include "processe.h"
+#include "process.h"
 
 #define FALSE 0
 #define TRUE !FALSE

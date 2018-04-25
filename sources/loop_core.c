@@ -110,9 +110,6 @@ void nsh_init(void) {
 
 }
 
-char host_name[1024];
-char *current_dir;
-
 int nsh_config(void) {
 
     nsh_init();
@@ -319,8 +316,7 @@ int _nsh_launch(char** args, exec_mode mode) {
 
         perror("fork error");
 
-        //TODO: add group process managment as show at
-        //https://www.usna.edu/Users/cs/aviv/classes/ic221/s16/lec/17/lec.html
+        //TODO: add group process management
     CHILD_CODE
         //any child processes ignore signal actions by inheritance
         //so every child have to reset its own signals
