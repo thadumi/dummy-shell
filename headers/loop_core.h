@@ -18,11 +18,11 @@
 
 //#define NSH_NUM_BUILTIN __NSH_NUM_BUILTIN(builtin_str)
 
-char *nsh_read_line(void);
+//char *nsh_read_line(void);
 
-char **nsh_split_line(char *line);
+//char **nsh_split_line(char *line);
 
-int nsh_execute(char **args);
+//int nsh_execute(char **args);
 
 //TODO: make extern setter const pointer for prompt config and  starting_msg
 
@@ -42,22 +42,18 @@ void nsh_prompt(void);
  * Read the user input. It will end when enter is pressed
  * @return user input line
  */
-char *nsh_read_line(void);
+//char *nsh_read_line(void);
 
 
 #define LSH_TOK_BUFFER 64
 #define LSH_TOK_DELIM " \t\r\n\a"
 
-/**
- * TODO: add quoting
- * @param line to parse
- * @return
- */
-char **nsh_split_line(char *line);
 
-int nsh_launch(char **args);
+//char **nsh_split_line(char *line);
 
-int nsh_execute(char **args);
+//int nsh_launch(char **args);
+
+//int nsh_execute(char **args);
 
 
 
@@ -81,21 +77,6 @@ int nsh_config(void);
  */
 int nsh_loop(void);
 
-/**
- * TODO: pipeline implementation
- * A pipe is an array of two file descriptors.
- * 1st descriptor si for read data and the 2nd for write data
- * The pipe's files are buffers into the kernel. By default when you try
- * to write into a pipe that is already full, the write call will wait until
- * it will be available space into the buffer. To change this behavior use
- * fcntl(pipe[1], F_SETFL, O_NONBLOCK);. In this way when the buffer is full the write
- * method will return an error (write(...) <= 0)
- */
-//#define NEW_PIPE(name) int (name)[2];
-typedef int pfd[2];
-
-#define open_pipe(pfd) int __pipe_error = pipe((pfd))
-#define if_open_error if(__pipe_error < 0)
-int nsh_pipe();
+//int nsh_pipe();
 
 #endif //SHELL_LOOP_CORE_H

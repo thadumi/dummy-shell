@@ -20,9 +20,8 @@ int nsh_cd(char **args) {
     return 1;
 }
 
+//TODO: create a api for builtin functions' help center
 int nsh_help(char **args) {
-    printf("dakdladada\n");
-
     //for(int i = 0; i < NSH_NUM_BUILTIN; i++) {
     //    printf(" %s\n", builtin_str[i]);
     //}
@@ -38,7 +37,7 @@ int nsh_exit(char **args) {
 /**
  * in this array must be declared the name of the custom functions
  */
-char* builtin_str[] = {
+const char* builtin_str[] = {
         "cd",
         "help",
         "exit"
@@ -49,7 +48,7 @@ char* builtin_str[] = {
  * this array contain the pointers of each custom function.
  * The order has to follow the one defined into builtin_str array.
  */
-int (*builtin_fun[]) (char **) = {
+const int (*builtin_fun[]) (char **) = {
         &nsh_cd,
         &nsh_help,
         &nsh_exit

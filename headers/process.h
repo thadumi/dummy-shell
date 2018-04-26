@@ -5,6 +5,8 @@
 #ifndef SHELL_PROCESSE_H
 #define SHELL_PROCESSE_H
 
+//template code for children management
+
 #define CREATE_CHILD pid_t child_pid = fork();
 #define IF_CHILD_CREATION_ERROR if(child_pid < 0) {
 #define CHILD_CODE } else if(child_pid == 0) {
@@ -17,8 +19,11 @@
         __wpid = waitpid(child_pid, &__status, WUNTRACED); \
     while(!WIFEXITED(__status) && !WIFSIGNALED(__status));
 
+//define the execution mode of a process
+//it can be in foreground or in background
 typedef char exec_mode;
 
+//constants for exec_mode
 #define BACKGROUND 1<<1
 #define FOREGROUND 1<<2
 

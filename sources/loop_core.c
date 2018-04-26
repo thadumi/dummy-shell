@@ -13,10 +13,10 @@
 char host_name[1024];
 char *current_dir;
 
-pid_t GBSH_PID;
-pid_t GBSH_PGID;
-int GBSH_IS_INTERACTIVE;
-struct termios GBSH_TMODES;
+static pid_t GBSH_PID;
+static pid_t GBSH_PGID;
+static int GBSH_IS_INTERACTIVE;
+static struct termios GBSH_TMODES;
 
 void nsh_init(void) {
 
@@ -69,7 +69,7 @@ void nsh_init(void) {
          *      int sigaction(int signum, const struct sigaction *newact, struct sigaction *oldact);
          * this function allows us to handler a signal with reentrant functions to avoid EINTR errors
          *
-         * struct sigaction {
+         * struct sigaction {à
          *      void (*sa_handler)(int);
          *      void (*sa_sigaction)(int, siginfo_t *, void *);
          *      sigset_t sa_mask;
@@ -120,6 +120,7 @@ int nsh_config(void) {
     return 0;
 }
 
+//TODO: allow template creation for welcome message and line start prompt
 void nsh_start_msg(void) {
     printf("\t\tWelcome\n");
 }
@@ -129,29 +130,7 @@ void nsh_prompt(void) {
 }
 
 
-int nsh_loop(void) {
-    char *line; //buffer for user input
-    char **args; //command + arguments buffer
-    int status;  //command output status code
-
-    nsh_start_msg();
-
-    do {
-        //printf("> ");
-        nsh_prompt();
-        line = nsh_read_line();
-        args = nsh_split_line(line);
-        status = nsh_execute(args);
-
-        printf("\n"); //empty line between two commands
-        free(line);
-        free(args);
-    } while(status);
-
-    return status;
-}
-
-char *nsh_read_line(void) {
+static char *nsh_read_line(void) {
     int buffer_size = LSH_RL_BUFSIZE;
     register ssize_t position = 0;
     int c;
@@ -159,7 +138,7 @@ char *nsh_read_line(void) {
     memset(buffer, '\0', buffer_size);
 
     if(!buffer) {
-        fprintf(stderr, "lsh: allocation input buffer error\n");
+        fprintf(stderr, "nsh: allocation input buffer error\n");
         exit(EXIT_FAILURE); //or return NULL with checks
     }
 
@@ -179,7 +158,7 @@ char *nsh_read_line(void) {
             buffer = realloc(buffer, buffer_size);  //and reallocate it
 
             if(!buffer) {                           //if the buffer reallocation failed
-                fprintf(stderr, "lsh: allocation error\n");
+                fprintf(stderr, "nsh: allocation error\n");
                 exit(EXIT_FAILURE);                  //exit with an error code
             }
 
@@ -198,7 +177,12 @@ char *nsh_read_line(void) {
      */
 }
 
-char **nsh_split_line(char *line) {
+/**
+ * TODO: add quoting
+ * @param line to parse
+ * @return
+ */
+static char **nsh_split_line(char *line) {
 
     ssize_t buffer_size = LSH_TOK_BUFFER;
     char **tokens = malloc(sizeof(char*) * buffer_size);
@@ -231,7 +215,7 @@ char **nsh_split_line(char *line) {
     return tokens;
 }
 
-int nsh_launch(char **args) {
+static int nsh_launch(char **args) {
     CREATE_CHILD
     IF_CHILD_CREATION_ERROR
 
@@ -253,7 +237,23 @@ int nsh_launch(char **args) {
     return 1;
 }
 
-int nsh_pipe() {
+/**
+ * TODO: pipeline implementation
+ * A pipe is an array of two file descriptors.
+ * 1st descriptor si for read data and the 2nd for write data
+ * The pipe's files are buffers into the kernel. By default when you try
+ * to write into a pipe that is already full, the write call will wait until
+ * it will be available space into the buffer. To change this behavior use
+ * fcntl(pipe[1], F_SETFL, O_NONBLOCK);. In this way when the buffer is full the write
+ * method will return an error (write(...) <= 0)
+ */
+//#define NEW_PIPE(name) int (name)[2];
+typedef int pfd[2];
+
+#define open_pipe(pfd) int __pipe_error = pipe((pfd))
+#define if_open_error if(__pipe_error < 0)
+
+static int nsh_pipe() {
     pfd p;
     char c;
 
@@ -310,7 +310,7 @@ int nsh_pipe() {
  * @param mode
  * @return
  */
-int _nsh_launch(char** args, exec_mode mode) {
+static int _nsh_launch(char** args, exec_mode mode) {
     CREATE_CHILD
     IF_CHILD_CREATION_ERROR
 
@@ -327,7 +327,7 @@ int _nsh_launch(char** args, exec_mode mode) {
         //signal (SIGTTOU, SIG_DFL);
         //signal (SIGCHLD, SIG_DFL);
 
-        // We set the child to ignore SIGINT signals (we want the parent
+        // set the child to ignore SIGINT signals (we want the parent
         // process to handle them with signalHandler_int)
         signal(SIGINT, SIG_IGN);
 
@@ -387,11 +387,31 @@ struct Builtin builtins[] = {
     { "exit", &nsh_exit }
 };
  */
-extern char *builtin_str[];
+
+/**
+ * builtin_str, builtin_fun, and builtin_fun_size are global constants
+ * that must be defined into the file that will call
+ * the nsh() function defined in /headers/shell.h.
+ *
+ * builtin_str is an array of strings as
+ * {
+ *  "command_0",
+ *  "command_1"
+ * }
+ * and contains the name with witch a function has to be call from the cli.
+ *
+ * The functions are defined into builtin_fun. This array contain the pointer to each
+ * function that must be in the form int <function-name>(char **args). It always return
+ * an exit code and accept and array of string that contains the function arguments.
+ * The functions' pointer must fallow the order defined into builtin_str.
+ *
+ * builtin_fun_size contain the size of the builtin_str and builtin_fun arrays.
+ */
+extern const char *builtin_str[];
 
 //int (*(*builtin_fun[])) (char **);
 
-extern int (*builtin_fun[]) (char **);
+extern const int (*builtin_fun[]) (char **);
 
 extern const int builtin_fun_size;
 
@@ -405,7 +425,7 @@ extern const int builtin_fun_size;
 }*/
 
 
-int nsh_execute(char **args) {
+static int nsh_execute(char **args) {
     if(args[0] == NULL) {
         return 1;
     }
@@ -416,4 +436,26 @@ int nsh_execute(char **args) {
     }
 
     return nsh_launch(args);
+}
+
+int nsh_loop(void) {
+    char *line; //buffer for user input
+    char **args; //command + arguments buffer
+    int status;  //command output status code
+
+    nsh_start_msg();
+
+    do {
+        //printf("> ");
+        nsh_prompt();
+        line = nsh_read_line();
+        args = nsh_split_line(line);
+        status = nsh_execute(args);
+
+        printf("\n"); //empty line between two commands
+        free(line);
+        free(args);
+    } while(status);
+
+    return status;
 }
