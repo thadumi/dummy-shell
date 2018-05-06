@@ -13,7 +13,7 @@ int nsh_cd(char **args) {
         fprintf(stderr, "dadajldajkld\n");
     } else {
         if(chdir(args[1]) != 0) {
-            perror("lsh");
+            perror("nsh");
         }
     }
 

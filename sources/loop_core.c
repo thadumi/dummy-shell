@@ -129,6 +129,7 @@ void nsh_prompt(void) {
     printf("%s@%s %s > ", getenv("LOGNAME"), host_name, getcwd(current_dir, 1024));
 }
 
+#define LSH_RL_BUFSIZE 1024 //size for the input buffer in bytes
 
 static char *nsh_read_line(void) {
     int buffer_size = LSH_RL_BUFSIZE;
@@ -177,6 +178,10 @@ static char *nsh_read_line(void) {
      */
 }
 
+
+#define LSH_TOK_BUFFER 64
+#define LSH_TOK_DELIM " \t\r\n\a|"
+
 /**
  * TODO: add quoting
  * @param line to parse
@@ -189,7 +194,7 @@ static char **nsh_split_line(char *line) {
     char *token;
 
     if(!tokens) {
-        fprintf(stderr, "lsh: allocation error\n");
+        fprintf(stderr, "nsh: allocation error\n");
         exit(EXIT_FAILURE);
     }
 
@@ -203,7 +208,7 @@ static char **nsh_split_line(char *line) {
             tokens = realloc(tokens, buffer_size * sizeof(char *));
 
             if (!tokens) {
-                fprintf(stderr, "lsh: allocation error\n");
+                fprintf(stderr, "nsh: allocation error\n");
                 exit(EXIT_FAILURE);
             }
         }
@@ -211,7 +216,6 @@ static char **nsh_split_line(char *line) {
         token = strtok(NULL, LSH_TOK_DELIM);
     }
     tokens[position] = NULL;
-
     return tokens;
 }
 
@@ -287,7 +291,7 @@ static int nsh_pipe() {
 
 
         //read and read 1 byte from stdin, write byte to pipe
-        while( read(0,&c,1) > 0){
+        while(read(0,&c,1) > 0){
             write(1, &c, 1);
         }
 
@@ -309,6 +313,12 @@ static int nsh_pipe() {
  * @param args
  * @param mode
  * @return
+    tokens[position] = NULL;
+
+    return tokens;
+}
+
+static int nsh_launch(char
  */
 static int _nsh_launch(char** args, exec_mode mode) {
     CREATE_CHILD
@@ -336,7 +346,7 @@ static int _nsh_launch(char** args, exec_mode mode) {
         // for the child
         //setenv("parent",getcwd(currentDirectory, 1024),1);
 
-        // If we launch non-existing commands we end the process
+        // If it was launched non-existing commands, end the process
         if (execvp(args[0],args) == -1){
             printf("Command not found");
             kill(getpid(),SIGTERM);
@@ -456,6 +466,8 @@ int nsh_loop(void) {
         free(line);
         free(args);
     } while(status);
+
+    free(current_dir);
 
     return status;
 }

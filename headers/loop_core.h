@@ -36,17 +36,12 @@ void nsh_start_msg(void);
  */
 void nsh_prompt(void);
 
-#define LSH_RL_BUFSIZE 1024 //size for the input buffer in bytes
 
 /**
  * Read the user input. It will end when enter is pressed
  * @return user input line
  */
 //char *nsh_read_line(void);
-
-
-#define LSH_TOK_BUFFER 64
-#define LSH_TOK_DELIM " \t\r\n\a"
 
 
 //char **nsh_split_line(char *line);
