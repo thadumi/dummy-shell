@@ -8,9 +8,6 @@
 #define FALSE 0
 #define TRUE !FALSE
 
-#define FALSE 0
-#define TRUE !FALSE
-
 typedef char bool;
 
 

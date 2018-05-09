@@ -254,11 +254,11 @@ static int nsh_launch(char **args) {
 //#define NEW_PIPE(name) int (name)[2];
 typedef int pfd[2];
 
-#define open_pipe(pfd) int __pipe_error = pipe((pfd))
-#define if_open_error if(__pipe_error < 0)
+//#define open_pipe(pfd) int __pipe_error = pipe((pfd))
+//#define if_open_error if(__pipe_error < 0)
 
 
-
+//TODO: multiple sequences as in parcer pipe
 static int pipe_join(char *com1[], char *com2[]) {
     pfd _pfd;       /* pipe */
     int status;     /* status */
@@ -322,23 +322,55 @@ static int pipe_join(char *com1[], char *com2[]) {
     END_PARENT_CODE
 }
 
-static int nsh_pipe() {
+/*
+ * Handle commands separatly
+ * input: return value from previous command (useful for pipe file descriptor)
+ * first: 1 if first command in pipe-sequence (no input from previous pipe)
+ * last: 1 if last command in pipe-sequence (no input from previous pipe)
+ *
+ * EXAMPLE: If you type "ls | grep shell | wc" in your shell:
+ *    fd1 = command(0, 1, 0), with args[0] = "ls"
+ *    fd2 = command(fd1, 0, 0), with args[0] = "grep" and args[1] = "shell"
+ *    fd3 = command(fd2, 0, 1), with args[0] = "wc"
+ *
+ * So if 'command' returns a file descriptor, the next 'command' has this
+ * descriptor as its 'input'.
+ */
+static int pipe_multijoin(int input, int first, int last, char *args[]) {
+    pfd pipedes;
+    pipe(pipedes);
 
+    CREATE_CHILD(next_command)
+    IF_CHILD_CREATION_ERROR(next_command)
 
-    CREATE_CHILD(child_pid)
-    IF_CHILD_CREATION_ERROR(child_pid)
+    CHILD_CODE(next_command)
+        if (first == 1 && last == 0 && input == 0) // First command
+            dup2( pipedes[WRITE], STDOUT_FILENO );
+        else if (first == 0 && last == 0 && input != 0) { // Middle command
+            dup2(input, STDIN_FILENO);
+            dup2(pipedes[WRITE], STDOUT_FILENO);
+        } else // Last command
+            dup2( input, STDIN_FILENO );
 
-    CHILD_CODE(child_pid)
-
+        if (execvp( args[0], args) == -1)
+            _exit(EXIT_FAILURE); // If child fails
     END_CHILD_CODE
     PARENT_CODE
-
-
     END_PARENT_CODE
-    return 0;
+
+    if (input != 0)
+        close(input);
+
+    // Nothing more needs to be written
+    close(pipedes[WRITE]);
+
+    // If it's the last command, nothing more needs to be read
+    if (last == 1)
+        close(pipedes[READ]);
+
+    return pipedes[READ];
 
 }
-
 /**
  * nsh_launch with fg/bg support
  * @param args
