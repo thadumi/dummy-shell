@@ -20,7 +20,6 @@ int _nsh_exit(void) {
 extern char host_name[1024];
 extern char *current_dir;
 
-
 int nsh() {
 
     nsh_config();

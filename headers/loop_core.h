@@ -6,9 +6,8 @@
 #define SHELL_LOOP_CORE_H
 
 #include "process.h"
+#include "utiliteas.h"
 
-#define FALSE 0
-#define TRUE !FALSE
 //extern char *builtin_str[];
 //extern int (*builtin_fun[]) (char **);
 

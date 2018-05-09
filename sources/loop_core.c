@@ -220,12 +220,12 @@ static char **nsh_split_line(char *line) {
 }
 
 static int nsh_launch(char **args) {
-    CREATE_CHILD
-    IF_CHILD_CREATION_ERROR
+    CREATE_CHILD(child_pid)
+    IF_CHILD_CREATION_ERROR(child_pid)
 
         perror("fork error");
 
-    CHILD_CODE
+    CHILD_CODE(child_pid)
 
         // If we launch non-existing commands we end the process
         if (execvp(args[0],args) == -1){
@@ -235,7 +235,7 @@ static int nsh_launch(char **args) {
 
     END_CHILD_CODE
     PARENT_CODE
-        WAIT_FOR_CHILD
+        WAIT_FOR_CHILD(child_pid)
     END_PARENT_CODE
 
     return 1;
@@ -257,51 +257,82 @@ typedef int pfd[2];
 #define open_pipe(pfd) int __pipe_error = pipe((pfd))
 #define if_open_error if(__pipe_error < 0)
 
-static int nsh_pipe() {
-    pfd p;
-    char c;
-
-    open_pipe(p);
-    if_open_error {
-        perror("pipe");
-        return 1;
-    };
-
-    CREATE_CHILD
-    IF_CHILD_CREATION_ERROR
-        perror("fork");
-        return 1;
-    CHILD_CODE
-        close(0); //close(stdin);
-
-        dup2(p[0], 0); //copy pipe input descriptor in stdin
-
-        close(p[1]); //the child don't need the writing end
-
-        while(read(0, &c, 1) > 0) write(1, &c, 1);
-        exit(0);
-    END_CHILD_CODE
-    PARENT_CODE
-        close(1);
-        //duplicate writing end to stdout
-        dup2(p[1], 1);
-
-        //close reading end
-        close(p[0]);
 
 
-        //read and read 1 byte from stdin, write byte to pipe
-        while(read(0,&c,1) > 0){
-            write(1, &c, 1);
+static int pipe_join(char *com1[], char *com2[]) {
+    pfd _pfd;       /* pipe */
+    int status;     /* status */
+
+    CREATE_CHILD(child)
+    IF_CHILD_CREATION_ERROR(child)
+
+        printf("unble to fork\n");
+        return -1;
+
+    CHILD_CODE(child)
+
+        if( pipe(_pfd) < 0 ) { /* can use 'pfd' since address */
+            printf("unable to pipe\n");
+            return-1;
         }
 
-        //close the pipe and stdout
-        close(p[1]);
-        close(1);
+        CREATE_CHILD(child1)
+        IF_CHILD_CREATION_ERROR(child1)
 
-        //wait for child
-        int status;
+            printf("unable to pipe\n");
+            return -1;
+
+        CHILD_CODE(child1)
+
+            close(STD_OUTPUT);
+
+            dup(_pfd[WRITE]);
+            close(_pfd[READ]);
+            close(_pfd[WRITE]);
+
+            execvp(com1[0], com1);
+            printf( "first execvp call failed!\n" );
+            return( -1 );
+
+        END_CHILD_CODE
+        PARENT_CODE
+
+            close( STD_INPUT );     /* close standard input */
+
+            /* make standard input come from pipe */
+            dup( _pfd[READ] );
+
+            close( _pfd[READ] );       /* close file descriptors */
+            close( _pfd[WRITE] );
+
+            /* execute command 2 */
+            execvp( com2[0], com2 );
+
+            /* if execvp returns, error occured */
+            printf( "second execvp call failed!\n" );
+            return( -1 );
+
+        END_PARENT_CODE
+    END_CHILD_CODE
+    PARENT_CODE
+
         wait(&status);
+        return  status;
+
+    END_PARENT_CODE
+}
+
+static int nsh_pipe() {
+
+
+    CREATE_CHILD(child_pid)
+    IF_CHILD_CREATION_ERROR(child_pid)
+
+    CHILD_CODE(child_pid)
+
+    END_CHILD_CODE
+    PARENT_CODE
+
 
     END_PARENT_CODE
     return 0;
@@ -321,13 +352,13 @@ static int nsh_pipe() {
 static int nsh_launch(char
  */
 static int _nsh_launch(char** args, exec_mode mode) {
-    CREATE_CHILD
-    IF_CHILD_CREATION_ERROR
+    CREATE_CHILD(child_pid)
+    IF_CHILD_CREATION_ERROR(child_pid)
 
         perror("fork error");
 
         //TODO: add group process management
-    CHILD_CODE
+    CHILD_CODE(child_pid)
         //any child processes ignore signal actions by inheritance
         //so every child have to reset its own signals
         //signal (SIGINT, SIG_DFL);
