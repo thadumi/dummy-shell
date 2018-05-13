@@ -388,39 +388,46 @@ static int pipe_join(char *com1[], char *com2[]) {
  * descriptor as its 'input'.
  */
 static int pipe_multijoin(int input, int first, int last, char *args[]) {
-    pfd pipedes;
-    pipe(pipedes);
+    int pipettes[2];
 
-    CREATE_CHILD(next_command)
-    IF_CHILD_CREATION_ERROR(next_command)
+    /* Invoke pipe */
+    pipe( pipettes );
+    static pid_t pid;
+    pid = fork();
 
-    CHILD_CODE(next_command)
-        if (first == 1 && last == 0 && input == 0) // First command
-            dup2( pipedes[WRITE], STDOUT_FILENO );
-        else if (first == 0 && last == 0 && input != 0) { // Middle command
+    /*
+     SCHEME:
+         STDIN --> O --> O --> O --> STDOUT
+    */
+
+    if (pid == 0) {
+        if (first == 1 && last == 0 && input == 0) {
+            // First command
+            dup2( pipettes[WRITE], STDOUT_FILENO );
+        } else if (first == 0 && last == 0 && input != 0) {
+            // Middle command
             dup2(input, STDIN_FILENO);
-            dup2(pipedes[WRITE], STDOUT_FILENO);
-        } else // Last command
+            dup2(pipettes[WRITE], STDOUT_FILENO);
+        } else {
+            // Last command
             dup2( input, STDIN_FILENO );
+        }
 
         if (execvp( args[0], args) == -1)
             _exit(EXIT_FAILURE); // If child fails
-    END_CHILD_CODE
-    PARENT_CODE
-    END_PARENT_CODE
+    }
 
     if (input != 0)
         close(input);
 
     // Nothing more needs to be written
-    close(pipedes[WRITE]);
+    close(pipettes[WRITE]);
 
     // If it's the last command, nothing more needs to be read
     if (last == 1)
-        close(pipedes[READ]);
+        close(pipettes[READ]);
 
-    return pipedes[READ];
-
+    return pipettes[READ];
 }
 /**
  * nsh_launch with fg/bg support
@@ -549,7 +556,7 @@ extern const int builtin_fun_size;
 }*/
 
 
-static int nsh_execute(char **args) {
+static int nsh_execute(char **args, int input, int first, int last) {
     if(args[0] == NULL) {
         return 1;
     }
@@ -559,7 +566,8 @@ static int nsh_execute(char **args) {
             return (*builtin_fun[i])(args);
     }
 
-    return nsh_launch(args);
+    //return nsh_launch(args);
+    return pipe_multijoin(input, first, last, args);
 }
 int nsh_loop(void) {
     char *line; //buffer for user input
@@ -574,20 +582,29 @@ int nsh_loop(void) {
         line = nsh_read_line();
         node commands = nsh_split_commands(line);
 
-        consume(commands, LAMBDA(void _(void* data) {
-            args = nsh_split_line(line);
-            status = nsh_execute(args);
+        const unsigned int commands_number = lenght(commands);
+        int input = 0;
+        int first  = 1;
+
+        consume(commands, LAMBDA(void _(void* data, int current_index) {
+            args = nsh_split_line((char*) data);
+            input = nsh_execute(args, input, first, commands_number-1 == current_index ? 1 : 0);
+
+            first = 0;
+            free(args);
         }));
+
+        for (int i = 0; i < commands_number; ++i) //wait for all process to end
+            wait(NULL);
 
         //args = nsh_split_line(line);
         //status = nsh_execute(args);
 
         printf("\n"); //empty line between two commands
         free(line);
-        //free(args);
     } while(status);
 
-    free(current_dir);
+    //free(current_dir);
 
-    return status;
+    //return status;
 }

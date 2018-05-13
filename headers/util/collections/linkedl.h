@@ -29,6 +29,7 @@ void push(struct Node** head_ref, void *new_data, size_t data_size);
 /* Function to print nodes in a given linked list. fpitr is used
    to access the function to be used for printing current node data.
    Note that different data types need different specifier in printf() */
-void consume(struct Node *node, void (*fptr)(void *));
+void consume(struct Node *node, void (*fptr)(void *, int));
 
+unsigned int lenght(struct Node* head);
 #endif //SHELL_LINKEDL_H

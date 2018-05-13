@@ -35,9 +35,20 @@ void push(struct Node** head_ref, void *new_data, size_t data_size)  {
 
 }
 
-void consume(struct Node *_node, void (*fptr)(void *))  {
+void consume(struct Node *_node, void (*fptr)(void *, int))  {
+    int current_index = 0;
     while (_node != NULL) {
-        (*fptr)(_node->data);
+        (*fptr)(_node->data, current_index);
         _node = _node->next;
+        current_index++;
     }
+}
+
+unsigned int lenght(struct Node* head) {
+    if(head == NULL) return 0;
+
+    int size = 1;
+    while(head = head->next) size++;
+
+    return size;
 }
