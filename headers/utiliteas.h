@@ -10,5 +10,6 @@
 
 typedef char bool;
 
+#define LAMBDA(c_) ({ c_ _;})
 
 #endif //SHELL_UTILITEAS_H

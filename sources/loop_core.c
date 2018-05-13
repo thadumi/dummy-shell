@@ -3,12 +3,15 @@
 //
 
 #include "../headers/loop_core.h"
+#include "../headers/utiliteas.h"
+#include "../headers/util/collections/linkedl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <zconf.h>
 #include <wait.h>
 #include <termios.h>
+#include <ctype.h>
 
 char host_name[1024];
 char *current_dir;
@@ -179,8 +182,56 @@ static char *nsh_read_line(void) {
 }
 
 
+// Note: This function returns a pointer to a substring of the original string.
+// If the given string was allocated dynamically, the caller must not overwrite
+// that pointer with the returned value, since the original pointer must be
+// deallocated using the same allocator with which it was allocated.  The return
+// value must NOT be deallocated using free() etc.
+char *trimwhitespace(char *str) {
+    char *end;
+
+    // Trim leading space
+    while(isspace((unsigned char)*str)) str++;
+
+    if(*str == 0)  // All spaces?
+        return str;
+
+    // Trim trailing space
+    end = str + strlen(str) - 1;
+    while(end > str && isspace((unsigned char)*end)) end--;
+
+    // Write new null terminator
+    *(end+1) = 0;
+    return str;
+}
+
+
 #define LSH_TOK_BUFFER 64
-#define LSH_TOK_DELIM " \t\r\n\a|"
+#define LSH_TOK_DELIM " \t\r\n\a"
+
+node nsh_split_commands(char *line) {
+    //from the line split they in single commands
+    //then they are insert into a list that will be execute ordered in pipe
+
+    node commands = NULL;
+
+    char* cmd = trimwhitespace(line);
+    char* next = strchr(cmd, '|');
+    char* trim_cmd = trimwhitespace(cmd);
+
+    while(next != NULL) {
+        *next = '\0';
+        trim_cmd = trimwhitespace(cmd);
+
+        push(&commands, trim_cmd, sizeof(char) * (strlen(trim_cmd) + 1));
+
+        cmd = next + 1;
+        next = strchr(cmd, '|');
+    }
+    trim_cmd = trimwhitespace(cmd);
+    push(&commands, trim_cmd, sizeof(char) * (strlen(trim_cmd) + 1));
+    return commands;
+}
 
 /**
  * TODO: add quoting
@@ -510,11 +561,10 @@ static int nsh_execute(char **args) {
 
     return nsh_launch(args);
 }
-
 int nsh_loop(void) {
     char *line; //buffer for user input
     char **args; //command + arguments buffer
-    int status;  //command output status code
+    int status = 1;  //command output status code
 
     nsh_start_msg();
 
@@ -522,12 +572,19 @@ int nsh_loop(void) {
         //printf("> ");
         nsh_prompt();
         line = nsh_read_line();
-        args = nsh_split_line(line);
-        status = nsh_execute(args);
+        node commands = nsh_split_commands(line);
+
+        consume(commands, LAMBDA(void _(void* data) {
+            args = nsh_split_line(line);
+            status = nsh_execute(args);
+        }));
+
+        //args = nsh_split_line(line);
+        //status = nsh_execute(args);
 
         printf("\n"); //empty line between two commands
         free(line);
-        free(args);
+        //free(args);
     } while(status);
 
     free(current_dir);

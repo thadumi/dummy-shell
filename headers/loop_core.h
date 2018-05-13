@@ -7,6 +7,8 @@
 
 #include "process.h"
 #include "utiliteas.h"
+#include "util/collections/linkedl.h"
+
 
 //extern char *builtin_str[];
 //extern int (*builtin_fun[]) (char **);
