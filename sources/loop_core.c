@@ -3,12 +3,15 @@
 //
 
 #include "../headers/loop_core.h"
+#include "../headers/utiliteas.h"
+#include "../headers/util/collections/linkedl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <zconf.h>
 #include <wait.h>
 #include <termios.h>
+#include <ctype.h>
 
 char host_name[1024];
 char *current_dir;
@@ -179,8 +182,56 @@ static char *nsh_read_line(void) {
 }
 
 
+// Note: This function returns a pointer to a substring of the original string.
+// If the given string was allocated dynamically, the caller must not overwrite
+// that pointer with the returned value, since the original pointer must be
+// deallocated using the same allocator with which it was allocated.  The return
+// value must NOT be deallocated using free() etc.
+char *trimwhitespace(char *str) {
+    char *end;
+
+    // Trim leading space
+    while(isspace((unsigned char)*str)) str++;
+
+    if(*str == 0)  // All spaces?
+        return str;
+
+    // Trim trailing space
+    end = str + strlen(str) - 1;
+    while(end > str && isspace((unsigned char)*end)) end--;
+
+    // Write new null terminator
+    *(end+1) = 0;
+    return str;
+}
+
+
 #define LSH_TOK_BUFFER 64
-#define LSH_TOK_DELIM " \t\r\n\a|"
+#define LSH_TOK_DELIM " \t\r\n\a"
+
+node nsh_split_commands(char *line) {
+    //from the line split they in single commands
+    //then they are insert into a list that will be execute ordered in pipe
+
+    node commands = NULL;
+
+    char* cmd = trimwhitespace(line);
+    char* next = strchr(cmd, '|');
+    char* trim_cmd = trimwhitespace(cmd);
+
+    while(next != NULL) {
+        *next = '\0';
+        trim_cmd = trimwhitespace(cmd);
+
+        push(&commands, trim_cmd, sizeof(char) * (strlen(trim_cmd) + 1));
+
+        cmd = next + 1;
+        next = strchr(cmd, '|');
+    }
+    trim_cmd = trimwhitespace(cmd);
+    push(&commands, trim_cmd, sizeof(char) * (strlen(trim_cmd) + 1));
+    return commands;
+}
 
 /**
  * TODO: add quoting
@@ -220,12 +271,12 @@ static char **nsh_split_line(char *line) {
 }
 
 static int nsh_launch(char **args) {
-    CREATE_CHILD
-    IF_CHILD_CREATION_ERROR
+    CREATE_CHILD(child_pid)
+    IF_CHILD_CREATION_ERROR(child_pid)
 
         perror("fork error");
 
-    CHILD_CODE
+    CHILD_CODE(child_pid)
 
         // If we launch non-existing commands we end the process
         if (execvp(args[0],args) == -1){
@@ -235,7 +286,7 @@ static int nsh_launch(char **args) {
 
     END_CHILD_CODE
     PARENT_CODE
-        WAIT_FOR_CHILD
+        WAIT_FOR_CHILD(child_pid)
     END_PARENT_CODE
 
     return 1;
@@ -254,60 +305,130 @@ static int nsh_launch(char **args) {
 //#define NEW_PIPE(name) int (name)[2];
 typedef int pfd[2];
 
-#define open_pipe(pfd) int __pipe_error = pipe((pfd))
-#define if_open_error if(__pipe_error < 0)
-
-static int nsh_pipe() {
-    pfd p;
-    char c;
-
-    open_pipe(p);
-    if_open_error {
-        perror("pipe");
-        return 1;
-    };
-
-    CREATE_CHILD
-    IF_CHILD_CREATION_ERROR
-        perror("fork");
-        return 1;
-    CHILD_CODE
-        close(0); //close(stdin);
-
-        dup2(p[0], 0); //copy pipe input descriptor in stdin
-
-        close(p[1]); //the child don't need the writing end
-
-        while(read(0, &c, 1) > 0) write(1, &c, 1);
-        exit(0);
-    END_CHILD_CODE
-    PARENT_CODE
-        close(1);
-        //duplicate writing end to stdout
-        dup2(p[1], 1);
-
-        //close reading end
-        close(p[0]);
+//#define open_pipe(pfd) int __pipe_error = pipe((pfd))
+//#define if_open_error if(__pipe_error < 0)
 
 
-        //read and read 1 byte from stdin, write byte to pipe
-        while(read(0,&c,1) > 0){
-            write(1, &c, 1);
+//TODO: multiple sequences as in parcer pipe
+static int pipe_join(char *com1[], char *com2[]) {
+    pfd _pfd;       /* pipe */
+    int status;     /* status */
+
+    CREATE_CHILD(child)
+    IF_CHILD_CREATION_ERROR(child)
+
+        printf("unble to fork\n");
+        return -1;
+
+    CHILD_CODE(child)
+
+        if( pipe(_pfd) < 0 ) { /* can use 'pfd' since address */
+            printf("unable to pipe\n");
+            return-1;
         }
 
-        //close the pipe and stdout
-        close(p[1]);
-        close(1);
+        CREATE_CHILD(child1)
+        IF_CHILD_CREATION_ERROR(child1)
 
-        //wait for child
-        int status;
+            printf("unable to pipe\n");
+            return -1;
+
+        CHILD_CODE(child1)
+
+            close(STD_OUTPUT);
+
+            dup(_pfd[WRITE]);
+            close(_pfd[READ]);
+            close(_pfd[WRITE]);
+
+            execvp(com1[0], com1);
+            printf( "first execvp call failed!\n" );
+            return( -1 );
+
+        END_CHILD_CODE
+        PARENT_CODE
+
+            close( STD_INPUT );     /* close standard input */
+
+            /* make standard input come from pipe */
+            dup( _pfd[READ] );
+
+            close( _pfd[READ] );       /* close file descriptors */
+            close( _pfd[WRITE] );
+
+            /* execute command 2 */
+            execvp( com2[0], com2 );
+
+            /* if execvp returns, error occured */
+            printf( "second execvp call failed!\n" );
+            return( -1 );
+
+        END_PARENT_CODE
+    END_CHILD_CODE
+    PARENT_CODE
+
         wait(&status);
+        return  status;
 
     END_PARENT_CODE
-    return 0;
-
 }
 
+/*
+ * Handle commands separatly
+ * input: return value from previous command (useful for pipe file descriptor)
+ * first: 1 if first command in pipe-sequence (no input from previous pipe)
+ * last: 1 if last command in pipe-sequence (no input from previous pipe)
+ *
+ * EXAMPLE: If you type "ls | grep shell | wc" in your shell:
+ *    fd1 = command(0, 1, 0), with args[0] = "ls"
+ *    fd2 = command(fd1, 0, 0), with args[0] = "grep" and args[1] = "shell"
+ *    fd3 = command(fd2, 0, 1), with args[0] = "wc"
+ *
+ * So if 'command' returns a file descriptor, the next 'command' has this
+ * descriptor as its 'input'.
+ */
+static int pipe_multijoin(int input, int first, int last, char *args[]) {
+    int pipettes[2];
+
+    /* Invoke pipe */
+    pipe( pipettes );
+    static pid_t pid;
+    pid = fork();
+
+    /*
+     SCHEME:
+         STDIN --> O --> O --> O --> STDOUT
+    */
+
+    if (pid == 0) {
+        if (first == 1 && last == 0 && input == 0) {
+            // First command
+            dup2( pipettes[WRITE], STDOUT_FILENO );
+        } else if (first == 0 && last == 0 && input != 0) {
+            // Middle command
+            dup2(input, STDIN_FILENO);
+            dup2(pipettes[WRITE], STDOUT_FILENO);
+        } else {
+            // Last command
+            dup2( input, STDIN_FILENO );
+        }
+
+        if (execvp( args[0], args) == -1)
+            _exit(EXIT_FAILURE); // If child fails
+    }
+
+    if (input != 0)
+        close(input);
+
+    // Nothing more needs to be written
+    close(pipettes[WRITE]);
+
+    // If it's the last command, nothing more needs to be read
+    if (last == 1)
+        close(pipettes[READ]);
+
+    return pipettes[READ];
+}
 /**
  * nsh_launch with fg/bg support
  * @param args
@@ -321,13 +442,13 @@ static int nsh_pipe() {
 static int nsh_launch(char
  */
 static int _nsh_launch(char** args, exec_mode mode) {
-    CREATE_CHILD
-    IF_CHILD_CREATION_ERROR
+    CREATE_CHILD(child_pid)
+    IF_CHILD_CREATION_ERROR(child_pid)
 
         perror("fork error");
 
         //TODO: add group process management
-    CHILD_CODE
+    CHILD_CODE(child_pid)
         //any child processes ignore signal actions by inheritance
         //so every child have to reset its own signals
         //signal (SIGINT, SIG_DFL);
@@ -435,7 +556,7 @@ extern const int builtin_fun_size;
 }*/
 
 
-static int nsh_execute(char **args) {
+static int nsh_execute(char **args, int input, int first, int last) {
     if(args[0] == NULL) {
         return 1;
     }
@@ -445,13 +566,13 @@ static int nsh_execute(char **args) {
             return (*builtin_fun[i])(args);
     }
 
-    return nsh_launch(args);
+    //return nsh_launch(args);
+    return pipe_multijoin(input, first, last, args);
 }
-
 int nsh_loop(void) {
     char *line; //buffer for user input
     char **args; //command + arguments buffer
-    int status;  //command output status code
+    int status = 1;  //command output status code
 
     nsh_start_msg();
 
@@ -459,15 +580,31 @@ int nsh_loop(void) {
         //printf("> ");
         nsh_prompt();
         line = nsh_read_line();
-        args = nsh_split_line(line);
-        status = nsh_execute(args);
+        node commands = nsh_split_commands(line);
+
+        const unsigned int commands_number = lenght(commands);
+        int input = 0;
+        int first  = 1;
+
+        consume(commands, LAMBDA(void _(void* data, int current_index) {
+            args = nsh_split_line((char*) data);
+            input = nsh_execute(args, input, first, commands_number-1 == current_index ? 1 : 0);
+
+            first = 0;
+            free(args);
+        }));
+
+        for (int i = 0; i < commands_number; ++i) //wait for all process to end
+            wait(NULL);
+
+        //args = nsh_split_line(line);
+        //status = nsh_execute(args);
 
         printf("\n"); //empty line between two commands
         free(line);
-        free(args);
     } while(status);
 
-    free(current_dir);
+    //free(current_dir);
 
-    return status;
+    //return status;
 }
