@@ -1,0 +1,25 @@
+QUESTIONS ABOUT ISSUE #1
+
+"Create a parser that analyses the command line arguments passed to the shell when it is started."
+---This part is ok.
+
+
+"The parser should check for parameters as --outputfile, --inputfile, --templatefile, and other that could be used to create a template file (the template file will be used to define how to write the log file). It also has to support shos from the arguments -ie -if and of that are --inputfile and --outputfile respectively."
+---This part is ok.
+
+"After that, the parser should pass the information grabbed from the CLI to a system that will care about the management of all the settings. The information could be passed using a struct in the form { '' : '' }."
+---So do I have to create the Parser or also the "system that will care about the management of all the settings"?
+---Anyway, in this version of the Parser I assumed that the arguments such as outputfile, and so on are already declared as global variables, so in the parser when I receive the names for the files I just open them or I just change the values of other global parameters such as maxlen and code, but if needed I may just pass those arguments to other functions or that "system", instead of directly open the files.
+
+"It will be nice to have a trrt forms from the arguments -ie -if and of that are --inputfile and --outputfile respectively."
+---This part is ok.
+
+"It will be nice to have a true environment configurator that, using the CLI, interact with the user to understand how to create the log's template file (and other stuff, ie arguments values)."
+---I didn't understand this part. When shall it be used? Only if the user choose a different template file, or what?
+---This environment has to be implemented, first please tell me if the way the parser works is ok or not, and if so, what I need to change.
+.
+.
+.
+.
+SORRY FOR THE LONG POST, HERE'S A POTATO
+https://www.amazon.com/produce-aisle-Russet-Potato-Large/dp/B000NSKB7Q
