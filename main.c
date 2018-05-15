@@ -6,6 +6,9 @@
 #include <termios.h>
 #include "headers/shell.h"
 #include "headers/loop_core.h"
+#include "headers/config.h"
+
+#define DEBUG 1             // no output print if 0
 
 
 int nsh_cd(char **args) {
@@ -59,7 +62,61 @@ const int (*builtin_fun[]) (char **) = {
  */
 const int builtin_fun_size = sizeof(builtin_str) / sizeof(char *);
 
+
+void load_config(FILE *cf) {
+    char temp[MAX_CHAR];
+    
+    fgets(temp, MAX_CHAR, cf);
+    config->shellConf.welcome_msg = config_parser(temp);
+
+    fgets(temp, MAX_CHAR, cf);
+    config->shellConf.user = config_parser(temp);
+
+    fgets(temp, MAX_CHAR, cf);
+    config->shellConf.file_in = config_parser(temp);
+
+    fgets(temp, MAX_CHAR, cf);
+    config->shellConf.file_out = config_parser(temp);
+}
+
+char* config_parser(char* str){
+    char final_str[MAX_CHAR];
+    int save = 0;
+    int j = 0;
+
+    for (int i=0;i<strlen(str);i++) {
+        if (str[i] == SEPARATOR_CONFIG_CHAR)
+            save = 1;
+        if (save == 1)
+            final_str[j++] = str[i];
+    }
+    return final_str;
+}
+
 int main(){
+
+    // read congfig file
+
+    FILE *configFile;
+    configFile = fopen(CONFIG_FILE_NAME, "r");
+
+    if (configFile == NULL) {
+        printf("Error on configuration loading\n");
+        return -2;
+    }
+
+    load_config(configFile);
+
+    if (DEBUG) {
+        printf("%s\n", config->shellConf.w_msg);
+        printf("%s\n", config->shellConf.user);
+        printf("%s\n", config->shellConf.f_in);
+        printf("%s\n", config->shellConf.fout);
+    }
+
+
+    fclose(configFile);
+
     //call the shell program.
     nsh();
 }
