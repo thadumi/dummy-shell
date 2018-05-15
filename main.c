@@ -79,20 +79,6 @@ void load_config(FILE *cf) {
     config->shellConf.file_out = config_parser(temp);
 }
 
-char* config_parser(char* str){
-    char final_str[MAX_CHAR];
-    int save = 0;
-    int j = 0;
-
-    for (int i=0;i<strlen(str);i++) {
-        if (str[i] == SEPARATOR_CONFIG_CHAR)
-            save = 1;
-        if (save == 1)
-            final_str[j++] = str[i];
-    }
-    return final_str;
-}
-
 int main(){
 
     // read congfig file
