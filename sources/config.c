@@ -3,12 +3,10 @@
 #include <stdlib.h>
 #include "../headers/config.h"
 
-#define MAX_CHAR 256
-#define SEPARATOR_CHAR '='
 #define DEBUG 1				// no output print if 0
 
 char* config_parser(char* str){
-	char final_str[MAX_CHAR];
+	char final_str[MAXLEN];
 	int save = 0;
 	int j = 0;
 

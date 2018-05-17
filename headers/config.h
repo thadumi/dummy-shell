@@ -1,16 +1,16 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define MAX_CHAR 256
+#define MAXLEN 256
 #define SEPARATOR_CONFIG_CHAR '='
 #define CONFIG_FILE_NAME ".config"
 
 
 typedef struct {
-	char welcome_msg[MAX_CHAR];
-	char user[MAX_CHAR];
-	char file_in[MAX_CHAR];
-	char file_out[MAX_CHAR];
+	char welcome_msg[MAXLEN];
+	char user[MAXLEN];
+	char file_in[MAXLEN];
+	char file_out[MAXLEN];
 }shellConf;
 
 typedef struct {

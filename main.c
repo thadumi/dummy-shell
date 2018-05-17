@@ -64,18 +64,18 @@ const int builtin_fun_size = sizeof(builtin_str) / sizeof(char *);
 
 
 void load_config(FILE *cf) {
-    char temp[MAX_CHAR];
+    char temp[MAXLEN];
     
-    fgets(temp, MAX_CHAR, cf);
+    fgets(temp, MAXLEN, cf);
     config->shellConf.welcome_msg = config_parser(temp);
 
-    fgets(temp, MAX_CHAR, cf);
+    fgets(temp, MAXLEN, cf);
     config->shellConf.user = config_parser(temp);
 
-    fgets(temp, MAX_CHAR, cf);
+    fgets(temp, MAXLEN, cf);
     config->shellConf.file_in = config_parser(temp);
 
-    fgets(temp, MAX_CHAR, cf);
+    fgets(temp, MAXLEN, cf);
     config->shellConf.file_out = config_parser(temp);
 }
 
