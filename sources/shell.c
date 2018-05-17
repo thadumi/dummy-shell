@@ -20,6 +20,7 @@ int _nsh_exit(void) {
 extern char host_name[1024];
 extern char *current_dir;
 
+
 //TODO: gain the CLI arguments for shell config ... if they are unseated
 // check if there is a config file populated, otherwise create a default one
 // and ask the user if he want to create a new one or main the default settings
