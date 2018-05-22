@@ -22,6 +22,15 @@ pid_t GBSH_PGID;
 int GBSH_IS_INTERACTIVE;
 struct termios GBSH_TMODES;
 
+void handler(int sig)
+{
+    pid_t pid;
+
+    pid = wait(NULL);
+
+    printf("handler pid %d exited.\n", pid);
+}
+
 void nsh_init(void) {
 
     /* See if we are running interactively.  */
@@ -84,12 +93,12 @@ void nsh_init(void) {
          */
 
         /* Ignore interactive and job-control signals. */
-        if(    signal(SIGINT, SIG_IGN)  == SIG_ERR
-               || signal(SIGQUIT, SIG_IGN) == SIG_ERR
-               || signal(SIGTSTP, SIG_IGN) == SIG_ERR
-               || signal(SIGTTIN, SIG_IGN) == SIG_ERR
+        if(    signal(SIGINT, SIG_DFL)  == SIG_ERR
+               || signal(SIGQUIT, SIG_DFL) == SIG_ERR
+               || signal(SIGTSTP, SIG_DFL) == SIG_ERR
+               || signal(SIGTTIN, SIG_DFL) == SIG_ERR
                || signal(SIGTTOU, SIG_IGN) == SIG_ERR
-               || signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
+               || signal(SIGCHLD, SIG_DFL) == SIG_ERR) { //signal(SIGCHLD, handler);
             perror("signals");
             exit(EXIT_FAILURE);
         }
@@ -663,7 +672,6 @@ int nsh_loop(void) {
             execbin(new_job->head->argv);
         } else launch_job(new_job, FOREGROUND);
 
-
         /*node commands = nsh_split_commands(line);
 
         const unsigned int commands_number = lenght(commands);
@@ -678,9 +686,13 @@ int nsh_loop(void) {
             free(args);
         }));
 
-        for (int i = 0; i < commands_number; ++i) //wait for all process to end
-            wait(NULL);
-        */
+        int _s, _r;
+
+        for (int i = 0; i < commands_number; ++i) {//wait for all process to end
+            _r = wait(&_s);
+
+            printf("wait %d with %d %d", i, _s, _r);
+        }*/
 
 
         //args = nsh_split_line(line);

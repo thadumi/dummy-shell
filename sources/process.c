@@ -50,7 +50,7 @@ int job_is_completed(job job) {
  */
 
 int mark_process_status(pid_t pid, int status) {
-    printf("status of %d \n", pid);
+    printf("status of %ld : %d\n", (long)pid, status);
     if(pid > 0 ) {
         foreach_job_as_j {
             foreach_proc_as_p_of(j) {
@@ -85,7 +85,7 @@ void update_status(void) {
     pid_t pid;
 
     do
-        pid = waitpid(WAIT_ANY, &status, WUNTRACED|WNOHANG);
+        pid = waitpid(WAIT_ANY, &status, WUNTRACED | WNOHANG);
     while(!mark_process_status(pid, status));
 }
 
@@ -171,6 +171,7 @@ void launch_process(process p, pid_t pgid, int infile, int outfile, int errfile,
         close(errfile);
     }
     execvp(p->argv[0], p->argv);
+
     perror("execvp");
     exit(1);
 }
@@ -250,6 +251,7 @@ void launch_job(job job, exec_mode mode) {
 }
 
 void do_job_notification(void) {
+    printf("\nnotifications\n\n");
     job next_job = NULL;
     job last_job = NULL;
     job j;
@@ -257,7 +259,7 @@ void do_job_notification(void) {
     update_status();
 
     for(j = jobs; j; j = next_job) {
-        printf("notification job: %s %d %d\n", j->command, job_is_stopped(j), job_is_completed(j));
+        printf("job: %s %d %d\n", j->command, job_is_stopped(j), job_is_completed(j));
         next_job = j->next;
 
         if(job_is_completed(j)) {
@@ -272,7 +274,10 @@ void do_job_notification(void) {
             j->notified = 1;
             last_job = j;
         } else last_job = j;
+        printf("\n");
     };
+
+    printf("\nend notifications\n");
 }
 
 void mark_jos_as_running(job job) {
