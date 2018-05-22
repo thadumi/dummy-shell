@@ -93,12 +93,12 @@ void nsh_init(void) {
          */
 
         /* Ignore interactive and job-control signals. */
-        if(    signal(SIGINT, SIG_DFL)  == SIG_ERR
-               || signal(SIGQUIT, SIG_DFL) == SIG_ERR
-               || signal(SIGTSTP, SIG_DFL) == SIG_ERR
-               || signal(SIGTTIN, SIG_DFL) == SIG_ERR
+        if(    signal(SIGINT, SIG_IGN)  == SIG_ERR
+               || signal(SIGQUIT, SIG_IGN) == SIG_ERR
+               || signal(SIGTSTP, SIG_IGN) == SIG_ERR  //TODO: add customs handlers here
+               || signal(SIGTTIN, SIG_IGN) == SIG_ERR
                || signal(SIGTTOU, SIG_IGN) == SIG_ERR
-               || signal(SIGCHLD, SIG_DFL) == SIG_ERR) { //signal(SIGCHLD, handler);
+               || signal(SIGCHLD, SIG_IGN) == SIG_ERR) { //signal(SIGCHLD, handler);
             perror("signals");
             exit(EXIT_FAILURE);
         }
@@ -699,9 +699,10 @@ int nsh_loop(void) {
         //status = nsh_execute(args);
 
         printf("\n"); //empty line between two commands
-        free(line);
 
         do_job_notification();
+        //TODO: free(line);
+
 
     } while(status);
 

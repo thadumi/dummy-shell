@@ -44,25 +44,25 @@ int job_is_completed(job job) {
         if(!p->completed) return FALSE;
     return TRUE;
 }
+
 /*
  * Store the status of the process pid that was returned by waitpid.
    Return 0 if all went well, nonzero otherwise.
  */
-
 int mark_process_status(pid_t pid, int status) {
-    printf("status of %ld : %d\n", (long)pid, status);
+    //printf("mark_process_status of %ld : %d\n", (long)pid, status);
     if(pid > 0 ) {
         foreach_job_as_j {
             foreach_proc_as_p_of(j) {
                 if(p->pid == pid) {
                     p->status = status;
                     if(WIFSTOPPED(status)) {
-                        printf("%d stopped \n", pid );
+                        //printf("%d stopped \n", pid );
                         p->stopped = TRUE;
                     }
                     else {
 
-                        printf("%d completed\n ", pid );
+                        //printf("%d completed\n ", pid );
                         p->completed = TRUE;
                         if(WIFSIGNALED(status)) fprintf(stderr, "%d: Terminated by signal %d.\n", (int) pid, WTERMSIG (p->status));
                     }
@@ -104,7 +104,6 @@ void wait_for_job(job job) {
    restore the saved terminal modes and send the process group a
    SIGCONT signal to wake it up before we block.
 */
-
 void put_job_in_foreground(job job, int cont) {
     tcsetpgrp(GBSH_PID, job->pgid); //put job in foreground
 
@@ -140,7 +139,6 @@ extern int execbin(char **args);
 
 void launch_process(process p, pid_t pgid, int infile, int outfile, int errfile, exec_mode mode) {
     pid_t pid;
-
     if(GBSH_IS_INTERACTIVE) {
         pid = getpid();
         if(pgid == 0) pgid = pid;
@@ -182,41 +180,32 @@ void launch_job(job job, exec_mode mode) {
         foreach_proc_as_p_of(job)
             printf("process: %s\n", p->argv[0]);
     */
+    do_job_notification();
+
     pid_t pid;
     int _pipe[2], infile, outfile;
 
     infile = job->strin;
     foreach_proc_as_p_of(job) {
-        if (p->next)
-        {
-            if (pipe (_pipe) < 0)
-            {
+        if (p->next)  {
+            if (pipe (_pipe) < 0)  {
                 perror ("pipe");
                 exit (1);
             }
             outfile = _pipe[1];
-        }
-        else
-            outfile = job->stout;
+        } else outfile = job->stout;
 
         /* Fork the child processes.  */
-        pid = fork ();
-        if (pid == 0)
-            /* This is the child process.  */
-            launch_process (p, job->pgid, infile,
-                            outfile, job->strerr, FOREGROUND);
-        else if (pid < 0)
-        {
-            /* The fork failed.  */
+        pid = fork();
+
+        if (pid == 0) /* This is the child process.  */
+            launch_process (p, job->pgid, infile, outfile, job->strerr, FOREGROUND);
+        else if (pid < 0)  { /* The fork failed.  */
             perror ("fork");
             exit (1);
-        }
-        else
-        {
-            /* This is the parent process.  */
+        } else { /* This is the parent process.  */
             p->pid = pid;
-            if (GBSH_IS_INTERACTIVE)
-            {
+            if (GBSH_IS_INTERACTIVE)  {
                 if (!job->pgid)
                     job->pgid = pid;
                 setpgid (pid, job->pgid);
@@ -230,8 +219,6 @@ void launch_job(job job, exec_mode mode) {
             close (outfile);
         infile = _pipe[0];
     }
-
-
 
     format_job_info(job, "launched");
 
@@ -247,7 +234,6 @@ void launch_job(job job, exec_mode mode) {
     if (!GBSH_IS_INTERACTIVE) wait_for_job(job);
     else if (mode == FOREGROUND) put_job_in_foreground(job, 0);
     else put_job_in_background(job, 0);
-
 }
 
 void do_job_notification(void) {
@@ -259,7 +245,17 @@ void do_job_notification(void) {
     update_status();
 
     for(j = jobs; j; j = next_job) {
-        printf("job: %s %d %d\n", j->command, job_is_stopped(j), job_is_completed(j));
+        printf("job: %s\n with gpid %ld \n", j->command, (long)j->pgid);
+
+        foreach_proc_as_p_of(j) {
+            printf("\n\tproc %ld \n", (long) p->pid);
+            char *arg;
+            int i = 0;
+            printf("\t\targv: ");
+            while((arg = p->argv[i++]) != NULL) printf("%s, ", arg);
+            printf("\n");
+            printf("\t\tstatus: %d\n", p->status);
+        }
         next_job = j->next;
 
         if(job_is_completed(j)) {
