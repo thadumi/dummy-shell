@@ -2,6 +2,10 @@
 // Created by thadumi on 4/24/18.
 //
 
+#include "util/collections/linkedl.h"
+#include "utiliteas.h"
+#include <termios.h>
+
 #ifndef SHELL_PROCESSE_H
 #define SHELL_PROCESSE_H
 
@@ -22,11 +26,11 @@
 
 //define the execution mode of a process
 //it can be in foreground or in background
-typedef char exec_mode;
+typedef unsigned int exec_mode;
 
 //constants for exec_mode
-#define BACKGROUND 1<<1
-#define FOREGROUND 1<<2
+#define BACKGROUND 1u<<1u
+#define FOREGROUND 1u<<2u
 
 #define STD_INPUT  0    /* file descriptor for standard input  */
 #define STD_OUTPUT 1    /* file descriptor for standard output */
@@ -34,4 +38,46 @@ typedef char exec_mode;
 #define WRITE 1         /* write file descriptor from pipe */
 
 
+typedef node commands_in_pipe;
+
+/*struct command{
+    char* name;
+    char* args;
+
+    exec_mode execMode;
+    void* thread;
+};
+
+struct {
+    
+};*/
+
+struct _proc {
+    char **argv; //for exec
+    pid_t pid;   //process id
+    bool completed; //true if the process has finished its job
+    bool stopped; //true if the process has stopped
+    int status; //reported status value
+
+    struct _proc *next; //next process in pipeline
+};
+
+typedef struct _proc* process;
+
+struct _job {
+    char *command;
+    struct _proc *head; //llist of processes in this job
+    pid_t pgid; //process group id
+    bool notified;
+    struct termios tmodes; //saved terminal modes
+    int strin, stout, strerr; //i/o channels
+
+    struct _job *next; //next active job
+};
+
+typedef struct _job *job;
+
+
+void launch_job(job job, exec_mode mode);
+void do_job_notification(void);
 #endif //SHELL_PROCESSE_H
