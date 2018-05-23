@@ -6,7 +6,7 @@
 #define SHELL_LOOP_CORE_H
 
 #include "process.h"
-#include "utiliteas.h"
+#include "util/utiliteas.h"
 #include "util/collections/linkedl.h"
 
 

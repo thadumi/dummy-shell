@@ -11,8 +11,6 @@
 static job jobs = NULL;
 
 #define foreach_job_as_j for(job j = jobs; j; j = j->next)
-#define foreach_proc_as_p_of(job) for(struct _proc* p = (job)->head; p; p = p->next)
-
 
 //TODO get this from loop_core
 int GBSH_PID;

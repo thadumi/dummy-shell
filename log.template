@@ -1,0 +1,22 @@
+# This file is used to undestand who to create the logger file.
+# The logger will create the file first writing the general information about
+# the job that was executed, i.e
+#
+# New job executed at $job_start_time
+# with command: $job_args
+# with gpid: $job_pid
+# with status. $job_status
+# with execution mode: $job_exec_mod
+# with the following processes:
+#   ... and here the logger will use this file to prompt all the information
+#       about every process that composed the job
+#
+name: $name
+########### argomenti del comando
+arguments: $args
+######### numero di argomenti
+arguments length: $argsnr
+############# true if was in pipe
+executed in pipe: $wipipe
+
+#there is bug if the last world is a token

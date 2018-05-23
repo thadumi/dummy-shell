@@ -5,11 +5,17 @@
 #ifndef SHELL_UTILITEAS_H
 #define SHELL_UTILITEAS_H
 
+#include <string.h>
+
 #define FALSE 0
 #define TRUE !FALSE
 
 typedef char bool;
 
 #define LAMBDA(c_) ({ c_ _;})
+
+
+int strcr(char *str, char orig, char rep);
+char *strsr(char *str, char *orig, char *rep);
 
 #endif //SHELL_UTILITEAS_H

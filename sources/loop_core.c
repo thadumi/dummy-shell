@@ -3,9 +3,10 @@
 //
 
 #include "../headers/loop_core.h"
-#include "../headers/utiliteas.h"
+#include "../headers/util/utiliteas.h"
 #include "../headers/process.h"
 #include "../headers/util/collections/linkedl.h"
+#include "../headers/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -701,6 +702,7 @@ int nsh_loop(void) {
         printf("\n"); //empty line between two commands
 
         do_job_notification();
+        log_job(new_job);
         //TODO: free(line);
 
 

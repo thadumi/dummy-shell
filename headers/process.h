@@ -3,7 +3,7 @@
 //
 
 #include "util/collections/linkedl.h"
-#include "utiliteas.h"
+#include "util/utiliteas.h"
 #include <termios.h>
 
 #ifndef SHELL_PROCESSE_H
@@ -77,6 +77,7 @@ struct _job {
 
 typedef struct _job *job;
 
+#define foreach_proc_as_p_of(job) for(struct _proc* p = (job)->head; p; p = p->next)
 
 void launch_job(job job, exec_mode mode);
 void do_job_notification(void);
