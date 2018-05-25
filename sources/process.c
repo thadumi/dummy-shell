@@ -235,7 +235,7 @@ void launch_job(job job, exec_mode mode) {
 }
 
 void do_job_notification(void) {
-    printf("\nnotifications\n\n");
+    //printf("\nnotifications\n\n");
     job next_job = NULL;
     job last_job = NULL;
     job j;
@@ -243,9 +243,9 @@ void do_job_notification(void) {
     update_status();
 
     for(j = jobs; j; j = next_job) {
-        printf("job: %s\n with gpid %ld \n", j->command, (long)j->pgid);
+        //printf("job: %s\n with gpid %ld \n", j->command, (long)j->pgid);
 
-        foreach_proc_as_p_of(j) {
+        /*foreach_proc_as_p_of(j) {
             printf("\n\tproc %ld \n", (long) p->pid);
             char *arg;
             int i = 0;
@@ -253,25 +253,25 @@ void do_job_notification(void) {
             while((arg = p->argv[i++]) != NULL) printf("%s, ", arg);
             printf("\n");
             printf("\t\tstatus: %d\n", p->status);
-        }
+        }*/
         next_job = j->next;
 
         if(job_is_completed(j)) {
-            format_job_info(j, "completed");
+            //format_job_info(j, "completed");
 
             if(last_job) last_job->next = next_job;
             else jobs = next_job;
 
             free(j);
         } else if(job_is_stopped(j) && !j->notified) {
-            format_job_info(j, "stopped");
+            //format_job_info(j, "stopped");
             j->notified = 1;
             last_job = j;
         } else last_job = j;
-        printf("\n");
+        //printf("\n");
     };
 
-    printf("\nend notifications\n");
+    //printf("\nend notifications\n");
 }
 
 void mark_jos_as_running(job job) {

@@ -26,7 +26,25 @@ int nsh_help(char **args) {
     //    printf(" %s\n", builtin_str[i]);
     //}
 
-    printf("Use man command for informations on other programs\n");
+    printf("Usage: shell [OPTION]\n"
+           "Runs the Shell, if OPTION is empty the default values are used.\n"
+           "\n"
+           "Possible OPTION parameters:\n"
+           "\t--welcomeMessage\t\t\t\tspecify the welcome message when the shell starts\n"
+           "\n"
+           "\t--inputFile\t\t\t\tthe name/path of the template file\n"
+           "\n"
+           "\t--outputFile \t\t\t\t\tthe name/path of the output file where all the output \n"
+           "\t\t\t\t\t\t\t\t\tof the shell are written\n"
+           "\n"
+           "\t--errorFile\t\t\t\tthe name/path of the error file where all the errors \n"
+           "\t\t\t\t\t\t\t\t\tthat occur when the shell is running are written\n"
+           "\n"
+           "\t--outputFileMode\t\t\t\tthe mode to open the output file and error file. Use:\n"
+           "\t\t\t\t\t\t\t\t\t\t\"w\"   -  simple writing (file need not exist)\n"
+           "\t\t\t\t\t\t\t\t\t\t\"wa\"  -  writing with append (file need not exist)\n"
+           "\t\t\t\t\t\t\t\t\t\t\"w+\"  -  simple writing (overwrite existing output file)\n"
+           "\t\t\t\t\t\t\t\t\t\t\"wa+\" -  writing with append (append if there is an old output file)");
     return 1;
 }
 

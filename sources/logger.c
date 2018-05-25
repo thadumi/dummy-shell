@@ -6,7 +6,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../headers/util/utiliteas.h"
+#include "../headers/config.h"
 
 #define COMMENT_TOKEN '#'
 #define KEYWORD_START_TOKEN '$'
@@ -38,10 +40,10 @@ const char * const TOKENS_LIST[][10] = {
 
 extern char* path_template_file;
 extern char* path_output_file;
-extern char* output_file_open_mode;
+extern char* output_file_write_mode;
 
 int check_template_path() {
-    printf("file: %s\n", path_template_file);
+    printf("file: #%s#\n", path_template_file);
     FILE* tmp;
     if(!(tmp = fopen(path_template_file, "r"))) {
         perror("error opening the template file");
@@ -203,19 +205,19 @@ int init_logger() {
 
 
 void log_job(job job) {
-    //FILE* of = fopen(path_output_file, output_file_open_mode);
+    FILE* of = fopen(path_output_file, output_file_write_mode);
 
-    //if(!of) {
-    //    printf("Error opening the file %s for writing the log information", path_output_file);
-    //    abort();
-    //}
+    if(!of) {
+        printf("Error opening the file %s for writing the log information", path_output_file);
+        abort();
+    }
 
-    printf("New job executed at $job_start_time");
-    printf("with command: %s\n", job->command);
-    printf("with gpid: %d\n", job->pgid);
-    printf("with status: status");
-    printf("with execution mode: %s\n", "foregound");
-    printf("with the following processes:\n");
+    fprintf(of, "New job executed at $job_start_time");
+    fprintf(of, "with command: %s\n", job->command);
+    fprintf(of, "with gpid: %d\n", job->pgid);
+    fprintf(of, "with status: status");
+    fprintf(of, "with execution mode: %s\n", "foregound");
+    fprintf(of, "with the following processes:\n");
 
     foreach_proc_as_p_of(job) {
 
@@ -232,25 +234,74 @@ void log_job(job job) {
             int token = 0;
             char* nl = strsr(line, " ", " "); //to create a copy of the line
             //char *nl_old =nl;
-
             while(tokens[token] != NULL) {
                 //nl_old = nl;
                 //if(tokens)
                 //HERE CHECK TOKEN AND CHANGE STRING TYPE
+
+
+                fprintf(of, "\t");
+
                 if(strcmp(tokens[token], NAME_TOKEN) == 0)
-                    nl = strsr(nl, tokens[token], NAME_TOKEN_TYPE);
-                else if(strcmp(tokens[token], ARGS_TOKEN) == 0)
-                    nl = strsr(nl, tokens[token], ARGS_TOKEN_TYPE);
-                else if(strcmp(tokens[token], ARGS_LENGHT_TOKEN) == 0)
+                    nl = strsr(nl, tokens[token], p->argv[0]);
+                else if(strcmp(tokens[token], ARGS_TOKEN) == 0) {
+                    printf("args\n");
+                    size_t buff_size = 0;
+                    int i = 1;
+                    char *arg;
+                    while( (arg = p->argv[i++]) != NULL) {
+                        buff_size += strlen(arg) * sizeof(char);
+                    }
+                    printf("if\n");
+
+                    if(buff_size == 0 ) //no command
+
+                        nl = strsr(nl, tokens[token], "null command");
+
+                    else if(buff_size == sizeof(p->argv[0])) //command without args
+
+                        nl = strsr(nl, tokens[token], "no args");
+
+                    else {
+                        int argc = i;
+                        char* tmp = malloc(buff_size + (argc * sizeof(char)));
+                        tmp[0] = '\0';
+                        i = 1;
+                        while(p->argv[i] != NULL) {
+                            printf("#%s#", tmp);
+                            strcat(tmp, p->argv[i++]);
+
+                            if(i < argc) strcat(tmp, " ");
+                        }
+
+                        nl = strsr(nl, tokens[token], tmp);
+                        free(tmp);
+                    }
+
+                } else if(strcmp(tokens[token], ARGS_LENGHT_TOKEN) == 0) {
+                    int argc = 1;
+
+                    while(p->argv[argc++] != NULL);
+
                     nl = strsr(nl, tokens[token], ARGS_LENGHT_TOKEN_TYPE);
-                else if(strcmp(tokens[token], EXECUTED_IN_PIPE_TOKEN) == 0)
+                    sprintf(nl, nl, argc - 2);
+
+                } else if(strcmp(tokens[token], EXECUTED_IN_PIPE_TOKEN) == 0) {
                     nl = strsr(nl, tokens[token], EXECUTED_IN_PIPE_TOKEN_TYPE);
+                    sprintf(nl, nl, p->next ? 1 : 0);
+                }
+
                 token++;
             }
-            printf("line after  parse %s\n", nl);
+
+            fprintf(of, nl);
             free(nl);
             line = lines[++cl];
         }
+
+        fprintf(of, "\n");
     }
+
+    fclose(of);
 
 }

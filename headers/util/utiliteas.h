@@ -17,5 +17,6 @@ typedef char bool;
 
 int strcr(char *str, char orig, char rep);
 char *strsr(char *str, char *orig, char *rep);
+char *trimwhitespace(char *str);
 
 #endif //SHELL_UTILITEAS_H
