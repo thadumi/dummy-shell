@@ -9,7 +9,7 @@ CONFIG_HOME = ~/.os-shell
 
 all: build
 
-build:
+install build:
 	mkdir -p ${LOGS_HOME}
 	touch ${LOGS_HOME}/console.log
 	touch ${LOGS_HOME}/log.template
