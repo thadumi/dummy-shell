@@ -27,7 +27,15 @@ extern char *current_dir;
 //char* output_file_open_mode = "";
 
 int nsh() {
-    load_configuration("../.config");
+    char *tmp=malloc(strlen(getenv("HOME") + strlen("/.os-shell/.config") +1));
+    strcpy(tmp, getenv("HOME"));
+    printf("tmp: %s", tmp);
+    strcat(tmp, "/.os-shell/.config");
+    printf("tmp: %s", tmp);
+
+    load_configuration(tmp);
+
+    free(tmp);
 
     if(!check_template_path()) {
         printf("error in template path");

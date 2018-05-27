@@ -218,7 +218,7 @@ void launch_job(job job, exec_mode mode) {
         infile = _pipe[0];
     }
 
-    format_job_info(job, "launched");
+    //format_job_info(job, "launched");
 
     if (jobs == NULL)
         jobs = job;

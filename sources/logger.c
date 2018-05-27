@@ -203,9 +203,10 @@ int init_logger() {
     return LOGGER_INITIALIZATION_OK;
 }
 
+static FILE* of = NULL;
 
 void log_job(job job) {
-    FILE* of = fopen(path_output_file, output_file_write_mode);
+    if(of == NULL) of = fopen(path_output_file, output_file_write_mode);
 
     if(!of) {
         printf("Error opening the file %s for writing the log information", path_output_file);
@@ -245,22 +246,21 @@ void log_job(job job) {
                 if(strcmp(tokens[token], NAME_TOKEN) == 0)
                     nl = strsr(nl, tokens[token], p->argv[0]);
                 else if(strcmp(tokens[token], ARGS_TOKEN) == 0) {
-                    printf("args\n");
+                    //printf("args\n");
                     size_t buff_size = 0;
                     int i = 1;
                     char *arg;
                     while( (arg = p->argv[i++]) != NULL) {
                         buff_size += strlen(arg) * sizeof(char);
                     }
-                    printf("if\n");
+                    //printf("if\n");
 
                     if(buff_size == 0 ) //no command
 
-                        nl = strsr(nl, tokens[token], "null command");
+                        nl = strsr(nl, tokens[token], "null args");
 
-                    else if(buff_size == sizeof(p->argv[0])) //command without args
-
-                        nl = strsr(nl, tokens[token], "no args");
+                    //else if(buff_size == sizeof(p->argv[0])) //command without args
+                    //   nl = strsr(nl, tokens[token], "no args");
 
                     else {
                         int argc = i;
@@ -302,6 +302,6 @@ void log_job(job job) {
         fprintf(of, "\n");
     }
 
-    fclose(of);
+    //fclose(of);
 
 }
