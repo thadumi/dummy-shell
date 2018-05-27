@@ -48,6 +48,7 @@ int nsh(int argc, char** argv) {
 
     init_logger();
 
+
     nsh_config();
     nsh_loop();
 
