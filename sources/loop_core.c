@@ -3,8 +3,10 @@
 //
 
 #include "../headers/loop_core.h"
-#include "../headers/utiliteas.h"
+#include "../headers/util/utiliteas.h"
+#include "../headers/process.h"
 #include "../headers/util/collections/linkedl.h"
+#include "../headers/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,10 +18,19 @@
 char host_name[1024];
 char *current_dir;
 
-static pid_t GBSH_PID;
-static pid_t GBSH_PGID;
-static int GBSH_IS_INTERACTIVE;
-static struct termios GBSH_TMODES;
+pid_t GBSH_PID;
+pid_t GBSH_PGID;
+int GBSH_IS_INTERACTIVE;
+struct termios GBSH_TMODES;
+
+void handler(int sig)
+{
+    pid_t pid;
+
+    pid = wait(NULL);
+
+    printf("handler pid %d exited.\n", pid);
+}
 
 void nsh_init(void) {
 
@@ -85,10 +96,10 @@ void nsh_init(void) {
         /* Ignore interactive and job-control signals. */
         if(    signal(SIGINT, SIG_IGN)  == SIG_ERR
                || signal(SIGQUIT, SIG_IGN) == SIG_ERR
-               || signal(SIGTSTP, SIG_IGN) == SIG_ERR
+               || signal(SIGTSTP, SIG_IGN) == SIG_ERR  //TODO: add customs handlers here
                || signal(SIGTTIN, SIG_IGN) == SIG_ERR
                || signal(SIGTTOU, SIG_IGN) == SIG_ERR
-               || signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
+               || signal(SIGCHLD, SIG_IGN) == SIG_ERR) { //signal(SIGCHLD, handler);
             perror("signals");
             exit(EXIT_FAILURE);
         }
@@ -181,31 +192,6 @@ static char *nsh_read_line(void) {
      */
 }
 
-
-// Note: This function returns a pointer to a substring of the original string.
-// If the given string was allocated dynamically, the caller must not overwrite
-// that pointer with the returned value, since the original pointer must be
-// deallocated using the same allocator with which it was allocated.  The return
-// value must NOT be deallocated using free() etc.
-char *trimwhitespace(char *str) {
-    char *end;
-
-    // Trim leading space
-    while(isspace((unsigned char)*str)) str++;
-
-    if(*str == 0)  // All spaces?
-        return str;
-
-    // Trim trailing space
-    end = str + strlen(str) - 1;
-    while(end > str && isspace((unsigned char)*end)) end--;
-
-    // Write new null terminator
-    *(end+1) = 0;
-    return str;
-}
-
-
 #define LSH_TOK_BUFFER 64
 #define LSH_TOK_DELIM " \t\r\n\a"
 
@@ -268,6 +254,63 @@ static char **nsh_split_line(char *line) {
     }
     tokens[position] = NULL;
     return tokens;
+}
+
+static job nsh_parse_jobs(char *line) {
+    job new_job = malloc(sizeof(struct _job));
+
+    if(!new_job) {
+        perror("can't create new jobs");
+        return NULL;
+    }
+
+    size_t len = strlen(line) + 1;
+    new_job->command = malloc(sizeof(char)*len);
+    memcpy(new_job->command, line, len);
+    new_job->next = NULL;
+    new_job->head = NULL;
+    new_job->notified = FALSE;
+    new_job->tmodes = GBSH_TMODES;
+    new_job->stout = STDOUT_FILENO;
+    new_job->strin = STDIN_FILENO;
+    new_job->strerr = STDERR_FILENO;
+
+    char* cmd = trimwhitespace(line);
+    char* next = strchr(cmd, '|');
+    char* trim_cmd;
+
+    while(next != NULL) {
+        *next = '\0';
+        trim_cmd = trimwhitespace(cmd);
+
+        process p = malloc(sizeof(struct _proc));
+        p->next = NULL;
+        p->stopped = FALSE;
+        p->completed = FALSE;
+        p->argv = nsh_split_line(trim_cmd);
+        if( new_job->head != NULL) {
+            process tmp = new_job->head;
+            while(tmp->next) tmp = tmp->next;
+            tmp->next = p;
+        } else new_job->head = p;
+
+        cmd = next + 1;
+        next = strchr(cmd, '|');
+    }
+    trim_cmd = trimwhitespace(cmd);
+
+    process p = malloc(sizeof(struct _proc));
+    p->next = NULL;
+    p->stopped = FALSE;
+    p->completed = FALSE;
+    p->argv = nsh_split_line(trim_cmd);
+    if( new_job->head != NULL) {
+        process tmp = new_job->head;
+        while(tmp->next) tmp = tmp->next;
+        tmp->next = p;
+    } else new_job->head = p;
+
+    return new_job;
 }
 
 static int nsh_launch(char **args) {
@@ -554,7 +597,22 @@ extern const int builtin_fun_size;
     builtin_str = str;
     builtin_fun = fun;
 }*/
+bool is_builtin(char **args) {
+    for(int i = 0; i < builtin_fun_size; i++) {
+        if(strcmp(args[0], builtin_str[i]) == 0)
+            return TRUE;
+    }
 
+    return FALSE;
+}
+int execbin(char **args) {
+    for(int i = 0; i < builtin_fun_size; i++) {
+        if(strcmp(args[0], builtin_str[i]) == 0)
+            return (*builtin_fun[i])(args);
+    }
+
+    return -1;
+}
 
 static int nsh_execute(char **args, int input, int first, int last) {
     if(args[0] == NULL) {
@@ -569,6 +627,7 @@ static int nsh_execute(char **args, int input, int first, int last) {
     //return nsh_launch(args);
     return pipe_multijoin(input, first, last, args);
 }
+
 int nsh_loop(void) {
     char *line; //buffer for user input
     char **args; //command + arguments buffer
@@ -580,7 +639,16 @@ int nsh_loop(void) {
         //printf("> ");
         nsh_prompt();
         line = nsh_read_line();
-        node commands = nsh_split_commands(line);
+        //commando-interno ? lancialo singolarmente
+        //creare job
+
+        job new_job = nsh_parse_jobs(line);
+
+        if(is_builtin(new_job->head->argv)) {
+            execbin(new_job->head->argv);
+        } else launch_job(new_job, FOREGROUND);
+
+        /*node commands = nsh_split_commands(line);
 
         const unsigned int commands_number = lenght(commands);
         int input = 0;
@@ -594,14 +662,25 @@ int nsh_loop(void) {
             free(args);
         }));
 
-        for (int i = 0; i < commands_number; ++i) //wait for all process to end
-            wait(NULL);
+        int _s, _r;
+
+        for (int i = 0; i < commands_number; ++i) {//wait for all process to end
+            _r = wait(&_s);
+
+            printf("wait %d with %d %d", i, _s, _r);
+        }*/
+
 
         //args = nsh_split_line(line);
         //status = nsh_execute(args);
 
         printf("\n"); //empty line between two commands
-        free(line);
+
+        do_job_notification();
+        log_job(new_job);
+        //TODO: free(line);
+
+
     } while(status);
 
     //free(current_dir);
