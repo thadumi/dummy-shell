@@ -132,7 +132,7 @@ void getfile(int argc, char **argv) {
                                 cod=1;
                             }
                                 //code false
-                            else if(strcmp(argv[ncom+1],"false")==0 || strcmp(argv[ncom+1],"false")==0 || strcmp(argv[ncom+1],"False")==0) {
+                            else if(strcmp(argv[ncom+1],"false")==0 || strcmp(argv[ncom+1],"FALSE")==0 || strcmp(argv[ncom+1],"False")==0) {
                                 CODE=1;
                                 cod=1;
                             }
@@ -288,39 +288,8 @@ void getfile(int argc, char **argv) {
         }
         if(tmp==0) {
             //default se non specificato
-            char *tmp=malloc(strlen(getenv("HOME") + strlen("/.os-shell/log.template") +1));
-            strcpy(tmp, getenv("HOME"));
-            strcat(tmp, "/shell-logs/log.template");
 
             path_template_file = NULL;
-            FILE* temp;
-            temp = fopen(tmp, "w");
-
-            fprintf(temp, "# This file is used to undestand who to create the logger file.\n");
-            fprintf(temp, "# The logger will create the file first writing the general information about\n");
-            fprintf(temp, "# the job that was executed, i.e\n");
-            fprintf(temp, "#\n");
-            fprintf(temp, "# New job executed at $job_start_time\n");
-            fprintf(temp, "# with command: $job_args\n");
-            fprintf(temp, "# with gpid: $job_pid");
-            fprintf(temp, "# with status. $job_status\n");
-            fprintf(temp, "# with execution mode: $job_exec_mod\n");
-            fprintf(temp, "# with the following processes:\n");
-            fprintf(temp, "#   ... and here the logger will use this file to prompt all the information\n");
-            fprintf(temp, "#       about every process that composed the job\n");
-            fprintf(temp, "#\n");
-            fprintf(temp, "name: $name\n");
-            fprintf(temp, "########### argomenti del comando\n");
-            fprintf(temp, "arguments: $args\n");
-            fprintf(temp, "######### numero di argomenti\n");
-            fprintf(temp, "arguments length: $argsnr\n");
-            fprintf(temp, "############# true if was in pipe\n");
-            fprintf(temp, "executed in pipe: $wipipe\n");
-            fprintf(temp, "\n");
-            fprintf(temp, "#end log template this can't be deleted\n");
-
-            fclose(temp);
-            free(tmp);
         }
     }
 }

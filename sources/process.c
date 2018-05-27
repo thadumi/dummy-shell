@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <wait.h>
+#include <time.h>
 #include "../headers/process.h"
 
 static job jobs = NULL;
@@ -64,6 +65,9 @@ int mark_process_status(pid_t pid, int status) {
                         p->completed = TRUE;
                         if(WIFSIGNALED(status)) fprintf(stderr, "%d: Terminated by signal %d.\n", (int) pid, WTERMSIG (p->status));
                     }
+
+                    if(p->stopped == TRUE || p->completed == TRUE)
+                        time(&(p->eat));
 
                     return 0;
                 }
@@ -203,6 +207,9 @@ void launch_job(job job, exec_mode mode) {
             exit (1);
         } else { /* This is the parent process.  */
             p->pid = pid;
+            p->sat = time(NULL);
+            //printf("ugo pid: %ld", (long) p->pid);
+            //time(&(p->sat));
             if (GBSH_IS_INTERACTIVE)  {
                 if (!job->pgid)
                     job->pgid = pid;

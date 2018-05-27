@@ -58,7 +58,8 @@ struct _proc {
     bool completed; //true if the process has finished its job
     bool stopped; //true if the process has stopped
     int status; //reported status value
-
+    time_t sat; //start at
+    time_t eat; //end at
     struct _proc *next; //next process in pipeline
 };
 

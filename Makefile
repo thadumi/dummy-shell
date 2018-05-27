@@ -13,6 +13,7 @@ install build:
 	mkdir -p ${LOGS_HOME}
 	touch ${LOGS_HOME}/console.log
 	touch ${LOGS_HOME}/log.template
+	touch ${LOGS_HOME}/error.log
 	echo "# This file is used to undestand who to create the logger file." >> ${LOGS_HOME}/log.template
 	echo "# The logger will create the file first writing the general information about" >> ${LOGS_HOME}/log.template
 	echo "# the job that was executed, i.e" >> ${LOGS_HOME}/log.template
@@ -31,8 +32,12 @@ install build:
 	echo "arguments: \$$args" >> ${LOGS_HOME}/log.template
 	echo "######### numero di argomenti" >> ${LOGS_HOME}/log.template
 	echo "arguments length: \$$argsnr" >> ${LOGS_HOME}/log.template
+	echo "pid: \$$pid " >> ${LOGS_HOME}/log.template
 	echo "############# true if was in pipe" >> ${LOGS_HOME}/log.template
 	echo "executed in pipe: \$$wipipe" >> ${LOGS_HOME}/log.template
+	echo "started at time: \$$start " >> ${LOGS_HOME}/log.template
+	#echo "ended at time: \$$end " >> ${LOGS_HOME}/log.template
+	echo "exit status: \$$status" >> ${LOGS_HOME}/log.template
 	echo "">> ${LOGS_HOME}/log.template
 	echo "#end" >> ${LOGS_HOME}/log.template
 	mkdir -p ${CONFIG_HOME}
@@ -42,6 +47,7 @@ install build:
 	echo "input_file=$$HOME/shell-logs/log.template" >> ${CONFIG_HOME}/.config
 	echo "output_file=$$HOME/shell-logs/console.log" >> ${CONFIG_HOME}/.config
 	echo "output_file_write_mode=w" >> ${CONFIG_HOME}/.config
+	echo "error_file=$$HOME/shell-logs/error.log" >> ${CONFIG_HOME}/.config
 	mkdir -p ${BUILD_DIR}
 	cd ${BUILD_DIR}; \
 	${CC} ${CC_FLAGS} $(addprefix ../, ${SRCS}) -c

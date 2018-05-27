@@ -16,6 +16,7 @@ char* path_error_file;
 char* output_file_write_mode;
 
 
+
 void load_configuration(char* confi_path) {
     FILE* cf = fopen(confi_path, "r");
     printf("opening %s\n", confi_path);
@@ -30,7 +31,7 @@ void load_configuration(char* confi_path) {
 
     while ( !feof(cf) &&
             (read = getline(&line, &len, cf)) != -1) {
-        printf("pippo: %s\n", line);
+        // printf("pippo: %s\n", line);
         char* eq = strchr(line, '=');
         *eq = '\0'; //divide the line in two parts
         char* value = trimwhitespace(eq + 1);
@@ -45,12 +46,12 @@ void load_configuration(char* confi_path) {
             prompt_message_template = malloc(sizeof(char) * strlen(value));
             strcpy(prompt_message_template, value);
 
-        } else if(strcmp(line, "input_file") == 0) {
+        } else if(strcmp(line, "input_file") == 0 && path_template_file == NULL) {
 
             //path_template_file = malloc(sizeof(char) * strlen(value));
             //strcpy(path_template_file, value);
              path_template_file = strsr(value, "~", getenv("HOME"));
-        } else if(strcmp(line, "output_file") == 0) {
+        } else if(strcmp(line, "output_file") == 0 && path_output_file == NULL) {
 
             //path_output_file = malloc(sizeof(char) * strlen(value));
             //strcpy(path_output_file, value);
@@ -58,6 +59,11 @@ void load_configuration(char* confi_path) {
         } else if(strcmp(line, "output_file_write_mode") == 0) {
             output_file_write_mode = malloc(sizeof(char) * strlen(value));
             strcpy(output_file_write_mode, value);
+        } else if(strcmp(line, "error_file") == 0 && path_error_file == NULL) {
+
+            //path_output_file = malloc(sizeof(char) * strlen(value));
+            //strcpy(path_output_file, value);
+            path_error_file = strsr(value, "~", getenv("HOME"));
         }
 
         //if(value) free(value);

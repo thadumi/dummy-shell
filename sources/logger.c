@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "../headers/util/utiliteas.h"
 #include "../headers/config.h"
 
@@ -17,13 +18,22 @@
 #define ARGS_TOKEN "$args"
 #define ARGS_LENGHT_TOKEN "$argsnr"
 #define EXECUTED_IN_PIPE_TOKEN "$wipipe"
+#define EXIT_STATUS_TOKEN "$status"
+#define START_AT_TOKEN "$start"
+#define END_AT_TOKEN "$end"
+#define PID_TOKEN "$pid"
 
 #define NAME_TOKEN_TYPE "%s"
 #define ARGS_TOKEN_TYPE "%s"
 #define ARGS_LENGHT_TOKEN_TYPE "%d"
 #define EXECUTED_IN_PIPE_TOKEN_TYPE "%d"
+#define EXIT_STATUS_TOKEN_TYPE "%d"
+#define START_AT_TOKEN_TYPE "%s"
+//"[%d %d %d  %d:%d:%d]"
+#define END_AT_TOKEN_TYPE "%s"
+#define PID_TOKEN_TYPE "%ld"
 
-#define TOKENS 4
+#define TOKENS 9
 #define MAX_TOKEN_LENGT
 
 
@@ -31,7 +41,11 @@ const char * const TOKENS_LIST[][10] = {
             {NAME_TOKEN, NAME_TOKEN_TYPE},
             {ARGS_TOKEN, ARGS_TOKEN_TYPE},
             {ARGS_LENGHT_TOKEN, ARGS_LENGHT_TOKEN_TYPE},
-            {EXECUTED_IN_PIPE_TOKEN, EXECUTED_IN_PIPE_TOKEN_TYPE}
+            {EXECUTED_IN_PIPE_TOKEN, EXECUTED_IN_PIPE_TOKEN_TYPE},
+            {EXIT_STATUS_TOKEN, EXIT_STATUS_TOKEN_TYPE},
+            {START_AT_TOKEN, START_AT_TOKEN_TYPE},
+            {END_AT_TOKEN, END_AT_TOKEN_TYPE},
+            {PID_TOKEN, PID_TOKEN_TYPE}
         };
 
 #define foreach_token for(int i = 0; i < TOKENS; i++)
@@ -41,6 +55,7 @@ const char * const TOKENS_LIST[][10] = {
 extern char* path_template_file;
 extern char* path_output_file;
 extern char* output_file_write_mode;
+extern char* path_error_file;
 
 int check_template_path() {
     printf("file: #%s#\n", path_template_file);
@@ -204,10 +219,11 @@ int init_logger() {
 }
 
 static FILE* of = NULL;
+static FILE* ef = NULL;
 
 void log_job(job job) {
     if(of == NULL) of = fopen(path_output_file, output_file_write_mode);
-
+    if(ef == NULL) ef = fopen(path_error_file, output_file_write_mode);
     if(!of) {
         printf("Error opening the file %s for writing the log information", path_output_file);
         abort();
@@ -221,7 +237,6 @@ void log_job(job job) {
     fprintf(of, "with the following processes:\n");
 
     foreach_proc_as_p_of(job) {
-
         int cl = 0;
         char *line = lines[cl];
         while(line != NULL) {
@@ -289,14 +304,45 @@ void log_job(job job) {
                 } else if(strcmp(tokens[token], EXECUTED_IN_PIPE_TOKEN) == 0) {
                     nl = strsr(nl, tokens[token], EXECUTED_IN_PIPE_TOKEN_TYPE);
                     sprintf(nl, nl, p->next ? 1 : 0);
-                }
+                } else if(strcmp(tokens[token], EXIT_STATUS_TOKEN) == 0) {
+                    nl = strsr(nl, tokens[token], EXIT_STATUS_TOKEN_TYPE);
+                    sprintf(nl, nl, p->status);
+                } else if(strcmp(tokens[token], START_AT_TOKEN) == 0) {
+                    nl = strsr(nl, tokens[token], START_AT_TOKEN_TYPE);
+                    char* temp = nl;
+                    nl = malloc(strlen(nl) * sizeof(char) + sizeof(char) * 100);
+                    memcpy(nl, temp, strlen(temp) * sizeof(char));
+                    free(temp);
+                    struct tm* timeinfo = localtime( &(p->sat));
 
+
+                    char buffer[50];
+                    memset(buffer, '\0', sizeof(char) * 50);
+                    memcpy(buffer, asctime(timeinfo), 24 * sizeof(char));
+                    buffer[24] = '\n';
+                    buffer[25] = '\0';
+                    sprintf(nl, nl, buffer);
+
+                } else if(strcmp(tokens[token], PID_TOKEN) == 0) {
+                    nl = strsr(nl, tokens[token], PID_TOKEN_TYPE);
+
+                    char* temp = nl;
+                    nl = malloc(strlen(nl) * sizeof(char) + sizeof(char) * 50);
+                    memcpy(nl, temp, strlen(temp) * sizeof(char));
+                    free(temp);
+                    sprintf(nl, nl, (long) p->pid);
+                    strcat(nl, "\n");
+                }
                 token++;
             }
-
+            printf("%s",nl);
             fprintf(of, nl);
             free(nl);
             line = lines[++cl];
+
+            if(p->status != 0) {
+                fprintf(ef, "Error: process %d exit with code %d\n", p->pid, p->status);
+            }
         }
 
         fprintf(of, "\n");
@@ -304,4 +350,10 @@ void log_job(job job) {
 
     //fclose(of);
 
+}
+
+
+void close_logger() {
+    if(of) fclose(of);
+    if(ef) fclose(ef);
 }

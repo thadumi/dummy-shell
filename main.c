@@ -77,7 +77,7 @@ const int (*builtin_fun[]) (char **) = {
  */
 const int builtin_fun_size = sizeof(builtin_str) / sizeof(char *);
 
-int main(){
+int main(int argc, char** argv){
     //call the shell program.
-    nsh();
+    nsh(argc, argv);
 }

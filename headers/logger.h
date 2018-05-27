@@ -10,5 +10,6 @@ int check_template_path();
 
 int init_logger();
 void log_job(job job);
+void close_logger();
 
 #endif //SHELL_LOGGER_H
