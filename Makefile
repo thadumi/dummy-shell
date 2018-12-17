@@ -1,8 +1,8 @@
 CC = gcc
 CC_FLAGS = -O3
-SRCS = main.c sources/cli_arguments_parser.c sources/config.c sources/logger.c sources/loop_core.c sources/process.c sources/shell.c sources/util/collections/linkedl.c sources/util/utiliteas.c
-HEADERS = headers/cli_arguments_parser.h headers/config.h headers/logger.h headers/loop_core.h headers/process.h headers/shell.h headers/util/collections/linkedl.h headers/util/utiliteas.h
-BUILD_DIR = build
+SRCS = src/main.c src/source/cli_arguments_parser.c src/source/config.c src/source/logger.c src/source/loop_core.c src/source/process.c src/source/shell.c src/source/util/collections/linkedl.c src/source/util/utiliteas.c
+HEADERS = src/headers/cli_arguments_parser.h src/headers/config.h src/headers/logger.h src/headers/loop_core.h src/headers/process.h src/headers/shell.h src/headers/util/collections/linkedl.h src/headers/util/utiliteas.h
+BUILD_DIR = bin
 EXECUTABLE = ${BUILD_DIR}/shell
 LOGS_HOME = ~/shell-logs
 CONFIG_HOME = ~/.os-shell
@@ -10,6 +10,11 @@ CONFIG_HOME = ~/.os-shell
 all: build
 
 install build:
+	mkdir -p ${BUILD_DIR}
+	cd ${BUILD_DIR}; \
+	${CC} ${CC_FLAGS} $(addprefix ../, ${SRCS}) -c
+	${CC} ${BUILD_DIR}/*.o ${HEADERS} -o ${EXECUTABLE}
+
 	mkdir -p ${LOGS_HOME}
 	touch ${LOGS_HOME}/console.log
 	touch ${LOGS_HOME}/log.template
@@ -42,24 +47,20 @@ install build:
 	echo "#end" >> ${LOGS_HOME}/log.template
 	mkdir -p ${CONFIG_HOME}
 	touch ${CONFIG_HOME}/.config
-	echo "welcome_message=\t Benvenuto" >> ${CONFIG_HOME}/.config
+	echo "welcome_message=Benvenuto nella shell" >> ${CONFIG_HOME}/.config
 	echo "prompt_msg=\$$host \$$full_path >" >> ${CONFIG_HOME}/.config
 	echo "input_file=$$HOME/shell-logs/log.template" >> ${CONFIG_HOME}/.config
 	echo "output_file=$$HOME/shell-logs/console.log" >> ${CONFIG_HOME}/.config
 	echo "output_file_write_mode=w" >> ${CONFIG_HOME}/.config
 	echo "error_file=$$HOME/shell-logs/error.log" >> ${CONFIG_HOME}/.config
-	mkdir -p ${BUILD_DIR}
-	cd ${BUILD_DIR}; \
-	${CC} ${CC_FLAGS} $(addprefix ../, ${SRCS}) -c
-	${CC} ${BUILD_DIR}/*.o ${HEADERS} -o ${EXECUTABLE}
 
 run:
 	${EXECUTABLE}
 
 clean:
-	rm -rvf build/
+	rm -rvf ${BUILD_DIR}
 	rm -rvf ${LOGS_HOME}
 	rm -rvf ${CONFIG_HOME}
 
 
-.PHONY: all build clean run
+.PHONY: all build clean run install

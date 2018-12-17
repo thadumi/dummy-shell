@@ -32,9 +32,8 @@ int nsh(int argc, char** argv) {
     strcpy(tmp, getenv("HOME"));
     printf("tmp: %s", tmp);
     strcat(tmp, "/.os-shell/.config");
-    printf("tmp: %s", tmp);
-
-    getfile(argc, argv);
+    printf("tmp: %s\n", tmp);
+    //getfile(argc, argv);
 
     load_configuration(tmp);
     free(tmp);
@@ -47,6 +46,7 @@ int nsh(int argc, char** argv) {
     printf("\n");
 
     init_logger();
+    system("clear");
 
     nsh_config();
     nsh_loop();

@@ -133,10 +133,12 @@ int nsh_config(void) {
 
     return 0;
 }
+extern char* welcome_mesasge;
 
 //TODO: allow template creation for welcome message and line start prompt
 void nsh_start_msg(void) {
-    printf("\t\tWelcome\n");
+    printf("%s", welcome_mesasge);
+    printf("\n");
 }
 
 void nsh_prompt(void) {

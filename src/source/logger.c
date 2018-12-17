@@ -283,7 +283,7 @@ void log_job(job job) {
                         tmp[0] = '\0';
                         i = 1;
                         while(p->argv[i] != NULL) {
-                            printf("#%s#", tmp);
+                            //printf("#%s#", tmp);
                             strcat(tmp, p->argv[i++]);
 
                             if(i < argc) strcat(tmp, " ");
@@ -335,7 +335,7 @@ void log_job(job job) {
                 }
                 token++;
             }
-            printf("%s",nl);
+            //printf("%s",nl);
             fprintf(of, nl);
             free(nl);
             line = lines[++cl];
