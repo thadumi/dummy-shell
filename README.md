@@ -1,2 +1,2 @@
 # osproject
-project for unitn's operating system class' task of UniTN
+Project for the operating systems course at UniTN
